@@ -213,6 +213,7 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
 .bigbtn:active:not(:disabled){box-shadow:none;transform:translate(3px,3px)}
 .bigbtn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .bigbtn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--frame);margin-top:10px}
+.getready{font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);text-align:center;padding-top:14px}
 .timerwrap{text-align:center;padding:30px 0 10px}
 .timerbig{font-family:var(--mono);font-weight:600;font-size:64px;font-variant-numeric:tabular-nums;line-height:1}
 .timersub{color:var(--muted);font-size:14px;margin-top:6px;font-style:italic}
@@ -1609,26 +1610,54 @@ function startMobility(){
     '<button class="bigbtn" id="rGo">Begin</button>');
   $("#rGo").onclick=()=>{R.i=0;paintHold();};
 }
+const GET_READY_SECS=7;
+// Enter a pose. Every pose opens with a short "get ready" countdown so you have
+// time to get into position — this also serves as the transition between poses.
+// The hold timer only starts after the lead-in (or when you tap "Start hold").
 function paintHold(){
   clearInterval(R.interval);
   if(R.i>=R.holds.length){R.onDone();return;}
-  const m=R.holds[R.i];R.left=m.secs||HOLD_SECS;R.paused=false;
+  const m=R.holds[R.i];
+  R.left=m.secs||HOLD_SECS;
+  R.ready=GET_READY_SECS;
+  R.phase="ready";
+  R.paused=false;
+  paintPose();
+  R.interval=setInterval(()=>{
+    if(R.paused)return;
+    if(R.phase==="ready"){
+      R.ready--;
+      if(R.ready<=0){R.phase="hold";try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}paintPose();return;}
+      const el=$("#tBig");if(el)el.textContent=R.ready;
+    }else{
+      R.left--;
+      if(R.left<=0){clearInterval(R.interval);try{if(navigator.vibrate)navigator.vibrate([120,60,120]);}catch(e){}R.i++;paintHold();return;}
+      const el=$("#tBig");if(el)el.textContent=R.left;
+    }
+  },1000);
+}
+function paintPose(){
+  const m=R.holds[R.i];
+  const ready=R.phase==="ready";
   const dots=R.holds.map((_,i)=>"<span class='"+(i<R.i?"done":i===R.i?"cur":"")+"'></span>").join("");
+  const big=ready?R.ready:R.left;
   runnerShell(R.title,
     '<div class="progressdots">'+dots+"</div>"+
-    '<div class="excard"><div class="timerwrap"><div class="timerbig" id="tBig">'+R.left+'</div><div class="timersub">seconds</div></div>'+
+    '<div class="excard">'+
+    (ready?'<div class="getready">Get into position</div>':"")+
+    '<div class="timerwrap"><div class="timerbig" id="tBig"'+(ready?' style="color:var(--gold)"':"")+'>'+big+'</div><div class="timersub">'+(ready?"get ready":"seconds — hold")+'</div></div>'+
     picSVG(m.img,m.flip)+
     '<div class="holdname">'+esc(m.nm)+'</div><div class="holdcue">'+esc(m.cue)+"</div>"+
     (R.i<R.holds.length-1?'<div class="restnote">Next: '+esc(R.holds[R.i+1].nm)+"</div>":'<div class="restnote">Last one.</div>')+"</div>"+
-    '<button class="bigbtn ghost" id="rPause">Pause</button><button class="bigbtn ghost" id="rSkip">Skip →</button>');
-  $("#rPause").onclick=()=>{R.paused=!R.paused;$("#rPause").textContent=R.paused?"Resume":"Pause";};
-  $("#rSkip").onclick=()=>{R.i++;paintHold();};
-  R.interval=setInterval(()=>{
-    if(R.paused)return;
-    R.left--;
-    if(R.left<=0){R.i++;paintHold();return;}
-    const el=$("#tBig");if(el)el.textContent=R.left;
-  },1000);
+    (ready
+      ? '<button class="bigbtn" id="rStart">Start hold</button><button class="bigbtn ghost" id="rSkip">Skip pose →</button>'
+      : '<button class="bigbtn ghost" id="rPause">'+(R.paused?"Resume":"Pause")+'</button><button class="bigbtn ghost" id="rSkip">Skip →</button>'));
+  if(ready){
+    $("#rStart").onclick=()=>{R.phase="hold";try{if(navigator.vibrate)navigator.vibrate(90);}catch(e){}paintPose();};
+  }else{
+    $("#rPause").onclick=()=>{R.paused=!R.paused;$("#rPause").textContent=R.paused?"Resume":"Pause";};
+  }
+  $("#rSkip").onclick=()=>{clearInterval(R.interval);R.i++;paintHold();};
 }
 /* ---- cardio (walk / long walk / bike / jog) ---- */
 function startCardio(d,opt,xp){
