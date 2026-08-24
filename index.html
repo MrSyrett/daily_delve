@@ -48,15 +48,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
-/* opaque backing for the status-bar / notch strip so scrolled content can never
-   show through the safe area above the sticky header */
-body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg);z-index:8;pointer-events:none}
 /* distressed print grain over everything */
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.055;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 input,textarea{font:inherit;color:inherit}
-#app{max-width:560px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) calc(16px + env(safe-area-inset-right)) calc(76px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+#app{max-width:560px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:0 calc(16px + env(safe-area-inset-right)) calc(76px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+/* content clears the fixed header — --topH is measured in JS (setTopH) */
+main{padding-top:var(--topH, calc(62px + env(safe-area-inset-top)))}
 
 /* hand-ruled wobble — irregular corner radii */
 .card,.excard,.modal .box{border-radius:7px 3px 8px 4px/4px 8px 3px 7px}
@@ -64,7 +63,10 @@ input,textarea{font:inherit;color:inherit}
 .stat,.tile{border-radius:4px 7px 3px 8px/8px 3px 7px 4px}
 
 /* ---------- header ---------- */
-.top{display:flex;align-items:center;gap:8px;padding:16px 2px 12px;position:sticky;top:env(safe-area-inset-top);background:var(--bg);z-index:9;border-bottom:2px solid var(--frame)}
+/* FIXED header — reliably paints the whole top strip (incl. the notch/status-bar
+   safe area) in the bar colour, so scrolled content can never show through above it */
+.top{position:fixed;top:0;left:0;right:0;z-index:15;background:var(--bg);border-bottom:2px solid var(--frame);padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))}
+.top .topinner{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:8px}
 .brand{font-family:var(--disp);font-size:19px;letter-spacing:.02em;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .brand .d20{color:var(--gold);line-height:0}
 .lvlwrap{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
@@ -307,6 +309,7 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
 <body>
 <div id="app">
   <header class="top">
+    <div class="topinner">
     <div class="brand"><span class="d20"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 2c1.1 3 4.2 4 3.7 7.2 1.7-1 2.2-2.8 1.9-4.3C20.2 7.6 21.4 11.6 19.7 15A8.1 8.1 0 0 1 4.3 15C2.6 11.6 3.8 7.6 6.4 4.9c-.3 1.5.2 3.3 1.9 4.3C7.8 6 10.9 5 12 2Z" fill="currentColor"/></svg></span> DAILY DELVE</div>
     <div class="lvlwrap">
       <span class="lvlbadge" id="lvlBadge">LV 1</span>
@@ -316,6 +319,7 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
     <button class="gear" id="settingsBtn" aria-label="Settings">
       <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
+    </div>
   </header>
 
   <main>
@@ -1854,6 +1858,11 @@ function bindUI(){
   },60000);
 }
 let renderedDay=null;
+// Measure the fixed header's real height (includes the safe-area inset on device)
+// and expose it as --topH so the content sits exactly below the bar.
+function setTopH(){
+  try{const t=document.querySelector(".top");if(t)document.documentElement.style.setProperty("--topH",t.offsetHeight+"px");}catch(e){}
+}
 (function init(){
   // Boot entirely from local data, wrapped so nothing can ever leave the app as
   // bare headers with dead tabs. Fully self-contained — no network, no login.
@@ -1863,6 +1872,8 @@ let renderedDay=null;
   renderedDay=todayKey();
   try{bindUI();}catch(e){}
   try{render();}catch(e){}
+  try{setTopH();setTimeout(setTopH,200);}catch(e){}
+  try{window.addEventListener("resize",setTopH);window.addEventListener("orientationchange",()=>setTimeout(setTopH,250));}catch(e){}
 })();
 </script>
 <style>
