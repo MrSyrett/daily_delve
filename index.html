@@ -495,12 +495,15 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
     <div class="mrow">
       <button class="mbtn pri" id="closeSettings">Done</button>
     </div>
+    <div id="buildTag" style="text-align:center;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:10px"></div>
   </div>
 </div>
 
 <div id="toast" role="status"></div>
 <script>
 "use strict";
+/* Build marker — bump on every deploy so a live version is verifiable in Settings. */
+const BUILD="v31 · fixed top bar · Aug 24";
 /* ============================== PROGRAM DATA ============================== */
 const PHASES=[
  {name:"Calibration",desc:"Weeks 1–2. Deliberately easy — the goal is showing up, not sweating. If it feels like too little, that's correct.",walk:15,sets:2},
@@ -1802,6 +1805,7 @@ function openSettings(){
   $("#phaseSel").value=S.phaseOv==null?"auto":String(S.phaseOv);
   $("#themeSel").value=S.theme||"auto";
   $("#dietModeSel").value=S.dietMode==="cal"?"cal":"fast";
+  const bt=$("#buildTag");if(bt&&typeof BUILD!=="undefined")bt.textContent="Daily Delve · "+BUILD;
   $("#exportTa").value=JSON.stringify(S);
   const bs=$("#backupSummary");
   if(bs){
