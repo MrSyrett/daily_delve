@@ -564,6 +564,10 @@ const PIC={
  fold:[["g"],["p",50,70,50,44],["p",50,44,38,57],["h",36,61,5],["p",41,55,38,68]],
  garland:[["h",50,20,6],["p",50,26,50,45],["p",48,46,34,48,32,66],["p",52,46,66,48,68,66],["p",48,32,45,47],["p",52,32,55,47]],
  lowlunge:[["g"],["h",44,20,6],["p",44,26,44,48],["p",44,48,58,52,58,70],["p",44,48,32,68,18,68],["p",44,32,54,48]],
+ quadset:[["g"],["h",30,22,6],["p",30,28,33,52],["p",33,52,78,55],["p",78,55,78,47],["p",31,36,20,54]],
+ legraise:[["g"],["h",16,62,5],["p",21,63,48,64],["p",48,64,72,48,76,46],["p",48,64,56,54,64,66]],
+ wallsit:[["g"],["p",16,8,16,72],["h",23,24,6],["p",22,30,22,52],["p",22,52,50,54],["p",50,54,50,72],["p",22,40,42,52]],
+ calfraise:[["g"],["h",48,18,6],["p",48,24,48,50],["p",48,50,44,72],["p",48,50,52,72],["p",44,72,40,66],["p",52,72,56,66],["p",48,32,63,28]],
 };
 const EXPIC={chsq:"chairsquat",wpu:"wallpush",dbrow:"row",dbug:"deadbug",gbr:"bridge",sdp:"press",ssq:"lunge",spk:"sideplank",bwsq:"squat",ipu:"inclinepush",oarow:"row",plk:"plank",rdl:"hinge",ohp:"press",rlg:"lunge",spl:"sideplank",sq:"goblet",pu:"pushup",brow:"row",plk2:"plank",brdl:"hinge",bohp:"press",dlg:"lunge",spl2:"sideplank"};
 function picSVG(key,flip){
@@ -593,12 +597,21 @@ const P={
  garland:{nm:"Garland Pose",cue:"Deep squat, elbows pressing the knees wide. Hold something for balance if you need it.",img:"garland"},
  lungeL:{nm:"Low Lunge — left",cue:"Left foot forward, right knee down. Tuck your pelvis, sink gently into the front of the hip.",img:"lowlunge"},
  lungeR:{nm:"Low Lunge — right",cue:"Swap sides. Right foot forward, left knee down, sink gently.",img:"lowlunge",flip:1},
+ // knee-support moves — gentle strengthening for the muscles around the knee
+ kQuad:{nm:"Quad Set",cue:"Sit with one leg straight. Tighten the thigh to press the back of the knee down. Hold 5s, release, repeat. Should feel like effort, never a sharp ache.",img:"quadset"},
+ kRaise:{nm:"Straight-Leg Raise",cue:"Lie back, one knee bent, the other straight. Lift the straight leg to the other knee's height, lower slowly. Alternate legs the whole time.",img:"legraise"},
+ kBridge:{nm:"Glute Bridge",cue:"On your back, knees bent, feet flat. Press through your heels, lift the hips, squeeze the glutes. Lower slow and repeat.",img:"bridge"},
+ kWall:{nm:"Wall Sit",cue:"Back flat on a wall. Slide down only as far as stays comfortable — keep knees above the ankles, never past the toes. Hold; stand up if it sharpens.",img:"wallsit"},
+ kCalf:{nm:"Calf Raises",cue:"Hold a wall for balance. Rise slowly onto the balls of your feet, then lower with control. Steady, repeated.",img:"calfraise"},
+ kQuadStretch:{nm:"Standing Quad Stretch",cue:"Hold a wall. Catch one foot behind you, knees together, stand tall — a gentle stretch down the front of the thigh. Ease off if the knee complains, and switch halfway.",img:"thigh"},
 };
 const FLOWS=[
  {nm:"Wake the Spine",holds:[P.cat,P.child,P.cobra,P.ddog,P.fold,P.garland]},
  {nm:"Open the Hips",holds:[P.bound,P.lungeL,P.lungeR,P.thighL,P.thighR,P.garland]},
  {nm:"Undo the Desk",holds:[P.neck,P.armL,P.armR,P.cat,P.cobra,P.ddog]},
 ];
+// dedicated knee-support routine (its own DEX option, not part of the rotation)
+const KNEE_FLOW=[P.kQuad,P.kRaise,P.kBridge,P.kWall,P.kCalf,P.kQuadStretch];
 const QUICK=[Object.assign({secs:30},P.neck),Object.assign({secs:25},P.armL),Object.assign({secs:25},P.armR),Object.assign({secs:40},P.fold)];
 /* stretch & micro scaling by training phase */
 const HOLD_BY_PHASE=[35,45,55,60];
@@ -644,7 +657,8 @@ const CATS=[
   {id:"micro",nm:"Micro-workouts",xp:40}]},
  {id:"dex",ab:"DEX",name:"Dexterity",opts:[
   {id:"quick",nm:"Quick stretch",xp:10},
-  {id:"flow",nm:"Mobility flow",xp:40}]},
+  {id:"flow",nm:"Mobility flow",xp:40},
+  {id:"knees",nm:"Knee care",xp:40}]},
  {id:"con",ab:"CON",name:"Constitution",opts:[
   {id:"walk",nm:"Walk",xp:40},
   {id:"bike",nm:"Bike ride",xp:40},
@@ -696,7 +710,7 @@ function perkSellMult(){return clsIs("bard")?1.25:1;}
 function perkShortRest(){return hasInn("hearth")?4:0;}
 function perkReadXP(){return clsIs("wizard")?5:0;}
 function logChron(text){S.chron=S.chron||[];S.chron.push({date:todayKey(),text});if(S.chron.length>80)S.chron=S.chron.slice(-80);}
-const OPT_NM={train:"Strength training",circuit:"Bodyweight circuit",micro:"Micro-workouts",quick:"Quick stretch",flow:"Mobility flow",walk:"Walk",longwalk:"Long walk",bike:"Bike ride",jog:"Easy jog",run:"C25K run",active:"Active day",read:"Read",learn:"Learn / practice",hobby:"Hobby time",puzzle:"Puzzles & brain work",family:"Family time",friend:"See a friend",pets:"Pet care",reach:"Random Act of Kindness",custom:"Custom"};
+const OPT_NM={train:"Strength training",circuit:"Bodyweight circuit",micro:"Micro-workouts",quick:"Quick stretch",flow:"Mobility flow",knees:"Knee care",walk:"Walk",longwalk:"Long walk",bike:"Bike ride",jog:"Easy jog",run:"C25K run",active:"Active day",read:"Read",learn:"Learn / practice",hobby:"Hobby time",puzzle:"Puzzles & brain work",family:"Family time",friend:"See a friend",pets:"Pet care",reach:"Random Act of Kindness",custom:"Custom"};
 const PERFECT_XP=25, COMEBACK_XP=40, ACH_XP=20, REST_XP=15, PWEEK_XP=100, PWEEK_GOLD=50;
 const FOCUS=[
  {cat:"con",opt:"walk",label:"Easy day — walk & stretch"},
@@ -889,7 +903,7 @@ function paintSaveChip(){
 }
 
 /* ============================== DERIVED ============================== */
-function physOf(day){return !!(day.str||day.con||(day.dex&&day.dex.opt==="flow"));}
+function physOf(day){return !!(day.str||day.con||(day.dex&&(day.dex.opt==="flow"||day.dex.opt==="knees")));}
 function derive(){
   const d={strC:0,walkOnly:0,conC:0,mobC:0,readC:0,dietC:0,dietMetC:0,socialC:0,stretchC:0,trials:0,activeDays:0,hasPerfect:false,bestWeek:0,streak:0,lvl:1,into:0,need:100};
   const weeks={};
@@ -900,7 +914,7 @@ function derive(){
     d.activeDays++;
     const wk=isoWeek(keyToDate(k));weeks[wk]=(weeks[wk]||0)+1;
     if(day.str)d.strC++;
-    if(day.dex){if(day.dex.opt==="flow")d.mobC++;else d.stretchC++;}
+    if(day.dex){if(day.dex.opt==="flow"||day.dex.opt==="knees")d.mobC++;else d.stretchC++;}
     if(day.con){d.conC++;if(["walk","longwalk","bike","jog","run"].indexOf(day.con.opt)>=0)d.walkOnly++;}
     if(day.int)d.readC++;
     if(day.social)d.socialC++;
@@ -1139,6 +1153,7 @@ function metaFor(opt,d){
     case "micro":return "3 short bursts across the day";
     case "quick":return "~"+quickMins(d.phase)+" min guided · neck, sides & fold";
     case "flow":return "6 holds × "+holdSecs(d.phase)+"s · “"+FLOWS[d.mobC%FLOWS.length].nm+"”";
+    case "knees":return "6 gentle holds × "+holdSecs(d.phase)+"s · strengthens & supports the knees";
     case "walk":return walkMins(d,false)+" min+ · easy pace · +20 XP at 45 min";
     case "bike":return walkMins(d,false)+" min · easy spin";
     case "run":{const w=c25kWeekOf(S.c25k||0);return (S.c25k>=27?"5K maintenance · 28 min":"Week "+w+" · session "+c25kSessOf(S.c25k||0)+" of 3")+" · guided intervals";}
@@ -1255,6 +1270,7 @@ function pickOpt(catId,optId){
   if(optId==="micro"){startMicro();return;}
   if(optId==="quick"){startQuick();return;}
   if(optId==="flow"){startMobility();return;}
+  if(optId==="knees"){startKneeCare();return;}
   if(optId==="active"){startConfirm("Active day","You were on your feet all day — 15k+ steps, a theme park, a long day out. That counts in full, no workout needed.","Log active day",()=>{completeCat("con","active",o.xp);closeRunner();});return;}
   if(optId==="run"){startC25K(d,o.xp);return;}
   startCardio(d,optId,o.xp);
@@ -1617,6 +1633,18 @@ const GET_READY_SECS=7;
 // Enter a pose. Every pose opens with a short "get ready" countdown so you have
 // time to get into position — this also serves as the transition between poses.
 // The hold timer only starts after the lead-in (or when you tap "Start hold").
+function startKneeCare(){
+  const d0=derive();
+  const hs=holdSecs(d0.phase);
+  R.holds=KNEE_FLOW.map(h=>Object.assign({secs:hs},h));
+  R.i=-1;R.title="Knee care";
+  R.onDone=()=>{completeCat("dex","knees",40);closeRunner();};
+  runnerShell(R.title,
+    '<div class="excard"><div class="nm">Knee care</div><div class="rx">6 gentle holds × '+hs+'s · ~'+Math.round(hs*6/60)+' min</div><p style="color:var(--muted);font-size:14px;margin-top:6px">Builds up the muscles that support and protect the knee — quads, glutes, hamstrings and calves — with slow, low-impact holds. Move gently, keep everything pain-free, and skip anything that sharpens the ache. If a knee stays painful or swells, ease off and check with a professional.</p>'+
+    '<ul class="cues">'+KNEE_FLOW.map(h=>"<li>"+esc(h.nm)+"</li>").join("")+"</ul></div>"+
+    '<button class="bigbtn" id="rGo">Begin</button>');
+  $("#rGo").onclick=()=>{R.i=0;paintHold();};
+}
 function paintHold(){
   clearInterval(R.interval);
   if(R.i>=R.holds.length){R.onDone();return;}
