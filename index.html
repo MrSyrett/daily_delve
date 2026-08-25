@@ -50,7 +50,7 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
 /* Solid cover for the status-bar / notch strip — guarantees the area above the
    bar is always painted, even if iOS is slow to repaint the sticky bar on scroll. */
-body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg);z-index:16;pointer-events:none}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:max(56px, calc(env(safe-area-inset-top, 0px) + 14px));background:var(--bg);z-index:16;pointer-events:none}
 /* distressed print grain over everything */
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.055;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E")}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -67,7 +67,7 @@ input,textarea{font:inherit;color:inherit}
 /* Sticky bar whose background reaches the very top of the screen; its content is
    padded down below the status bar/notch by env(safe-area-inset-top). The fixed
    body::before strip backstops the status-area coverage during scroll. */
-.top{position:sticky;top:0;z-index:15;background:var(--bg);border-bottom:2px solid var(--frame);padding:calc(16px + env(safe-area-inset-top)) 2px 12px}
+.top{position:sticky;top:0;z-index:15;background:var(--bg);border-bottom:2px solid var(--frame);padding:max(56px, calc(env(safe-area-inset-top, 0px) + 14px)) 2px 12px}
 .top .topinner{display:flex;align-items:center;gap:8px}
 .brand{font-family:var(--disp);font-size:19px;letter-spacing:.02em;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .brand .d20{color:var(--gold);line-height:0}
@@ -507,7 +507,7 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
 <script>
 "use strict";
 /* Build marker — bump on every deploy so a live version is verifiable in Settings. */
-const BUILD="v34 · top bar covers status area · Aug 25";
+const BUILD="v35 · thicker top bar · Aug 25";
 /* ============================== PROGRAM DATA ============================== */
 const PHASES=[
  {name:"Calibration",desc:"Weeks 1–2. Deliberately easy — the goal is showing up, not sweating. If it feels like too little, that's correct.",walk:15,sets:2},
