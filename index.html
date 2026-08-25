@@ -65,7 +65,7 @@ input,textarea{font:inherit;color:inherit}
    only <main> scrolls internally. The header is a static block that never moves,
    so page content physically cannot slip above it into the status-bar area.
    Its top padding clears the phone's clock/battery (safe-area, min 44px). */
-.top{flex:0 0 auto;background:var(--bg);border-bottom:2px solid var(--frame);padding:max(calc(env(safe-area-inset-top,0px) + 12px), 44px) 16px 12px}
+.top{flex:0 0 auto;background:var(--bg);border-bottom:2px solid var(--frame);padding:max(calc(env(safe-area-inset-top,0px) + 5px), 20px) 16px 11px}
 .top .topinner{display:flex;align-items:center;gap:8px}
 .brand{font-family:var(--disp);font-size:19px;letter-spacing:.02em;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .brand .d20{color:var(--gold);line-height:0}
@@ -99,6 +99,15 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
 .act.sugg{border-color:var(--ink);background:var(--accent-soft)}
 .act.sugg::after{content:"suggested";position:absolute;top:8px;right:10px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
 .locknote{font-size:12.5px;color:var(--muted);margin-top:8px;font-style:italic}
+/* turn economy */
+.actbudget{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.02em;line-height:1.45;background:var(--surface2);border:1.5px solid var(--line);border-radius:4px 6px 3px 6px/6px 3px 6px 4px;padding:8px 11px;margin:12px 0 8px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.actbudget b{color:var(--ink);font-weight:600}
+.actbudget i{font-style:italic;color:var(--muted)}
+.actbudget .ab-ic{color:var(--gold)}
+.habit-btns{flex:none;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.hbtn.sm{padding:5px 11px;font-size:12.5px}
+.opt-tag{font-family:var(--mono);font-size:8.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:2px;padding:1px 4px;white-space:nowrap;position:relative;top:-1px}
+.opt-tag.tag-action{color:var(--gold);border-color:var(--gold)}
 
 /* habit rows */
 .habit{display:flex;align-items:center;gap:12px;padding:13px 2px;border-top:1px solid var(--line)}
@@ -508,7 +517,7 @@ h1.date{font-family:var(--disp);font-weight:400;font-size:32px;text-wrap:balance
 <script>
 "use strict";
 /* Build marker — bump on every deploy so a live version is verifiable in Settings. */
-const BUILD="v37 · fixed shell · Aug 25";
+const BUILD="v39 · actions & free actions · Aug 25";
 /* ============================== PROGRAM DATA ============================== */
 const PHASES=[
  {name:"Calibration",desc:"Weeks 1–2. Deliberately easy — the goal is showing up, not sweating. If it feels like too little, that's correct.",walk:15,sets:2},
@@ -1010,9 +1019,36 @@ function syncPerfect(){
     day.perfect=0;day.perfectLuck=0;
   }
 }
+/* ---- turn economy (Shadowdark) ----
+   Each day = one turn. Only two activities are heavy "Actions" (a strength
+   workout and the C25K run); a player has 2 Actions per turn. Everything else
+   is a "Free Action" you may repeat as often as you like — the first log in a
+   category earns full XP and drives your stats, each repeat earns a flat token. */
+const REP_XP=5;
+function isActionOpt(catId,optId){return (catId==="str"&&optId==="train")||(catId==="con"&&optId==="run");}
+function catIsAction(day,catId){const r=day[catId];return !!(r&&isActionOpt(catId,r.opt));}
+function actionsUsed(day){let n=0;for(const c of ["str","dex","con","int","social"])if(catIsAction(day,c))n++;for(const e of (day.extra||[]))if(e.action)n++;return n;}
+function actionsLeft(){return Math.max(0,2-actionsUsed(dayRec()));}
 function completeCat(catId,optId,xp,extra){
   const day=dayRec();
-  if(day[catId])return;
+  const action=isActionOpt(catId,optId);
+  // heavy-action budget: only two Actions per turn (free actions never blocked)
+  if(action){
+    if(catIsAction(day,catId)){toast("You've already logged that Action today");return;}
+    if(actionsUsed(day)>=2){toast("Both Actions are spent for today — free actions are still open");return;}
+  }
+  if(day[catId]){
+    // this category already holds its primary — log an extra (a repeat or an added activity)
+    const gained=action?xp:REP_XP;
+    const rec={cat:catId,opt:optId,xp:gained};
+    if(action)rec.action=1;
+    if(extra&&extra.label)rec.label=extra.label;
+    day.extra=day.extra||[];day.extra.push(rec);
+    grantXP(gained);
+    const nm=(optId==="custom"&&rec.label)?rec.label:(OPT_NM[optId]||optId);
+    toast(nm+(action?"":" again")+" — +"+gained+" XP");
+    checkAch();save();render();return;
+  }
   checkComeback();
   if(catId==="int"&&(optId==="read"||optId==="learn"))xp+=perkReadXP();
   const rec={opt:optId,xp};if(extra)Object.assign(rec,extra);
@@ -1033,6 +1069,12 @@ function undoCat(catId){
   if(catId==="con"&&rec.opt==="run"&&rec.c25kWas!=null)S.c25k=rec.c25kWas;
   delete day[catId];
   syncPerfect();save();render();
+}
+// undo the most recent thing logged in a category — the last extra, or the primary if none
+function undoLast(catId){
+  const day=dayRec(),ex=day.extra||[];
+  for(let i=ex.length-1;i>=0;i--){if(ex[i].cat===catId){grantXP(-(ex[i].xp||0));ex.splice(i,1);if(!ex.length)delete day.extra;save();render();return;}}
+  undoCat(catId);
 }
 function strenuousToday(){const day=dayRec();return !!(day.str||(day.con&&day.con.opt==="run"));}
 function logRest(type){
@@ -1197,6 +1239,33 @@ function render(){
   renderToday(d);renderChar(d);renderLog(d);paintSaveChip();
   if(typeof renderDungeon==="function")renderDungeon(d);
 }
+function optGridHtml(cat,d,day){
+  const ro=recOpt(cat.id,d);
+  const budgetSpent=actionsUsed(day)>=2;
+  const repeat=!!day[cat.id];
+  let html='<div class="optwrap">';
+  if(CAT_CUSTOM===cat.id){
+    html+='<div class="manrow" style="margin:10px 0 4px"><input id="customIn" type="text" maxlength="40" placeholder="What did you do?" style="flex:1;min-width:150px;text-align:left"><button class="hbtn" id="customGo">Log +'+(repeat?REP_XP:CUSTOM_XP[cat.id])+' XP</button><button class="linkbtn" id="customCancel">cancel</button></div>';
+  }else{
+    if(repeat)html+='<div class="locknote" style="margin:2px 0 8px">You\'ve already logged '+esc(cat.name)+' today — anything more is a free repeat worth +'+REP_XP+' XP.</div>';
+    html+='<div class="actgrid" style="margin-top:0">';
+    for(const o of cat.opts){
+      const isAct=isActionOpt(cat.id,o.id);
+      const restBlock=day.rest&&(o.id==="train"||o.id==="micro"||o.id==="run");
+      const doneAction=isAct&&catIsAction(day,cat.id);
+      const capBlock=isAct&&budgetSpent&&!(day[cat.id]&&day[cat.id].opt===o.id);
+      const dis=(o.cool&&strengthLocked())||restBlock||capBlock||doneAction;
+      const tag=isAct?'<span class="opt-tag tag-action">Action</span>':'<span class="opt-tag">Free</span>';
+      const shownXP=(repeat&&!isAct)?REP_XP:o.xp;
+      const meta=restBlock?"not on a rest day — walks & stretches only":(doneAction?"already logged today":(capBlock?"both Actions used today":metaFor(o.id,d)));
+      html+='<button class="act'+(o.id===ro&&!dis&&!repeat?" sugg":"")+'" data-opt="'+cat.id+':'+o.id+'"'+(dis?" disabled":"")+'><span class="nm">'+esc(o.nm)+' '+tag+'</span><span class="meta">'+esc(meta)+" · +"+shownXP+" XP</span></button>";
+    }
+    html+='<button class="act" style="grid-column:1/-1" data-addcustom="'+cat.id+'"><span class="nm">+ Add custom</span><span class="meta">log something else that counts as '+esc(cat.name)+"</span></button>";
+    html+="</div>";
+  }
+  html+="</div>";
+  return html;
+}
 function renderToday(d){
   const now=new Date();
   $("#todayTitle").textContent=now.toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"});
@@ -1209,36 +1278,31 @@ function renderToday(d){
   const day=S.days[todayKey()]||{};
   $("#perfectBanner").hidden=!day.perfect;
   // ---- character actions ----
-  let html="";
+  const budgetUsed=actionsUsed(day);
+  let html='<div class="actbudget"><span class="ab-ic">⚔</span> Actions <b>'+budgetUsed+' of 2</b> used <i>· a strength workout & the C25K run are Actions — everything else is free and repeatable</i></div>';
   for(const cat of CATS){
     const rec=day[cat.id];
     const col=catColor(cat.ab);
     const focusCat=f.cat===cat.id;
+    const exOfCat=(day.extra||[]).filter(e=>e.cat===cat.id);
     if(rec){
       let detail=rec.opt==="custom"?(rec.label||"Custom"):(OPT_NM[rec.opt]||rec.opt);
       if(rec.day)detail+=" — Day "+rec.day;
       if(rec.min)detail+=" — "+rec.min+" min";
-      html+='<div class="habit"><div class="ic" style="background:color-mix(in srgb,'+col+' 15%,transparent);color:'+col+'">'+cat.ab+'</div><div class="tx"><div class="t">'+esc(cat.name)+'</div><div class="s" style="color:var(--accent)">✓ '+esc(detail)+' · +'+rec.xp+' XP</div></div><button class="linkbtn" data-undo="'+cat.id+'">undo</button></div>';
+      const actTag=isActionOpt(cat.id,rec.opt)?' <span class="opt-tag tag-action">Action</span>':'';
+      let exLine='';
+      if(exOfCat.length){
+        const names=exOfCat.map(e=>(e.label||OPT_NM[e.opt]||e.opt)).join(", ");
+        const exXP=exOfCat.reduce((s,e)=>s+(e.xp||0),0);
+        exLine='<div class="s" style="color:var(--muted);font-style:italic">+ again: '+esc(names)+' · +'+exXP+' XP</div>';
+      }
+      html+='<div class="habit"><div class="ic" style="background:color-mix(in srgb,'+col+' 15%,transparent);color:'+col+'">'+cat.ab+'</div><div class="tx"><div class="t">'+esc(cat.name)+actTag+'</div><div class="s" style="color:var(--accent)">✓ '+esc(detail)+' · +'+rec.xp+' XP</div>'+exLine+'</div><div class="habit-btns"><button class="hbtn sm'+(CAT_OPEN===cat.id?" on":"")+'" data-cat="'+cat.id+'">'+(CAT_OPEN===cat.id?"Close":"+ Again")+'</button><button class="linkbtn" data-undo="'+cat.id+'">undo</button></div></div>';
+      if(CAT_OPEN===cat.id){html+=optGridHtml(cat,d,day);}
     }else{
       const ro=recOpt(cat.id,d);
       const roNm=OPT_NM[ro];
       html+='<div class="habit"><div class="ic" style="background:color-mix(in srgb,'+col+' 15%,transparent);color:'+col+'">'+cat.ab+'</div><div class="tx"><div class="t">'+esc(cat.name)+(focusCat?' <span style="font-size:11px;color:var(--accent);font-family:var(--mono)">· focus</span>':"")+'</div><div class="s">Suggested: '+esc(roNm)+'</div></div><button class="hbtn'+(CAT_OPEN===cat.id?" on":"")+'" data-cat="'+cat.id+'">'+(CAT_OPEN===cat.id?"Close":"Choose")+'</button></div>';
-      if(CAT_OPEN===cat.id){
-        html+='<div class="optwrap">';
-        if(CAT_CUSTOM===cat.id){
-          html+='<div class="manrow" style="margin:10px 0 4px"><input id="customIn" type="text" maxlength="40" placeholder="What did you do?" style="flex:1;min-width:150px;text-align:left"><button class="hbtn" id="customGo">Log +'+CUSTOM_XP[cat.id]+' XP</button><button class="linkbtn" id="customCancel">cancel</button></div>';
-        }else{
-          html+='<div class="actgrid" style="margin-top:0">';
-          for(const o of cat.opts){
-            const restBlock=day.rest&&(o.id==="train"||o.id==="micro"||o.id==="run");
-            const dis=(o.cool&&strengthLocked())||restBlock;
-            html+='<button class="act'+(o.id===ro&&!dis?" sugg":"")+'" data-opt="'+cat.id+':'+o.id+'"'+(dis?" disabled":"")+'><span class="nm">'+esc(o.nm)+'</span><span class="meta">'+esc(restBlock?"not on a rest day — walks & stretches only":metaFor(o.id,d))+" · +"+o.xp+" XP</span></button>";
-          }
-          html+='<button class="act" style="grid-column:1/-1" data-addcustom="'+cat.id+'"><span class="nm">+ Add custom</span><span class="meta">log something else that counts as '+esc(cat.name)+"</span></button>";
-          html+="</div>";
-        }
-        html+="</div>";
-      }
+      if(CAT_OPEN===cat.id){html+=optGridHtml(cat,d,day);}
     }
   }
   // ---- wisdom (diet, read-only here) ----
@@ -1260,7 +1324,7 @@ function renderToday(d){
   $("#actList").innerHTML=html;
   // bindings
   $("#actList").querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{CAT_OPEN=CAT_OPEN===b.dataset.cat?null:b.dataset.cat;render();});
-  $("#actList").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>undoCat(b.dataset.undo));
+  $("#actList").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>undoLast(b.dataset.undo));
   $("#actList").querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>{const [c,o]=b.dataset.opt.split(":");pickOpt(c,o);});
   $("#actList").querySelectorAll("[data-addcustom]").forEach(b=>b.onclick=()=>{CAT_CUSTOM=b.dataset.addcustom;render();const i=$("#customIn");if(i)i.focus();});
   const cg=$("#customGo");
@@ -1514,6 +1578,7 @@ function renderLog(d){
       const rec=day[cat.id];
       if(rec){let t=rec.opt==="custom"?(rec.label||"Custom"):(OPT_NM[rec.opt]||cat.name);if(rec.day)t+=" "+rec.day;if(rec.min)t+=" "+rec.min+"m";parts.push(t);xp+=rec.xp||0;}
     }
+    for(const e of (day.extra||[])){parts.push(e.label||OPT_NM[e.opt]||e.opt);xp+=e.xp||0;}
     if(day.diet){parts.push(day.diet.h?"Fast "+fmtH(day.diet.h):(day.diet.cal!=null?day.diet.cal+" cal":"Fast"));xp+=dietXPof(day);}
     if(day.rest){const sh=day.rest==="short";parts.push(sh?"Short Rest":"Long Rest");xp+=sh?10:15;}
     if(day.perfect){xp+=PERFECT_XP;parts.push("★");}
